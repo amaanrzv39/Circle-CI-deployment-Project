@@ -41,7 +41,7 @@ jobs:
               echo "$GCLOUD_SERVICE_KEY" | base64 --decode > gcp-key.json
               gcloud auth activate-service-account --key-file=gcp-key.json
               gcloud config set project ${GCP_PROJECT}
-              gcloud auth configure docker
+              gcloud auth configure-docker
       - run:
           name: Kubernetes deployment
           command: |
