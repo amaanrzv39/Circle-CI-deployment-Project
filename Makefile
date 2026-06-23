@@ -17,3 +17,9 @@ deploy:
 run:
 	make process
 	make train
+
+# git push
+push:
+	git add .
+	git commit -m "deploying"
+	git push -u oigin main

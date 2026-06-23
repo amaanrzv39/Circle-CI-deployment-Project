@@ -1,0 +1,61 @@
+version: 2.1
+
+executors:
+  docker-executor:
+    docker:
+      - image: google/cloud-sdk:latest
+    working_directory: ~/repo
+
+jobs:
+  checkout_code:
+    executor: docker-executor
+    steps:
+      - checkout
+  
+  build_and_push:
+    executor: docker-executor
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Authenticate with google cli
+          command: |
+              echo "$GCLOUD_SERVICE_KEY" | base64 --decode > gcp-key.json
+              gcloud auth activate-service-account --key-file=gcp-key.json
+              gcloud config set project ${GCP_PROJECT}
+              gcloud auth configure docker
+      - run:
+          name: Build and push docker image to gcr
+          command: |
+              docker build -t gcr.io/${GCP_PROJECT}/mlops1:latest
+              docker push gcr.io/${GCP_PROJECT}/mlops1:latest
+  
+  deploy_to_gke:
+    executor: docker-executor
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Authenticate with google cli
+          command: |
+              echo "$GCLOUD_SERVICE_KEY" | base64 --decode > gcp-key.json
+              gcloud auth activate-service-account --key-file=gcp-key.json
+              gcloud config set project ${GCP_PROJECT}
+              gcloud auth configure docker
+      - run:
+          name: Kubernetes deployment
+          command: |
+              gcloud container clusters get-credentials ${GKE_CLUSTER} --region ${GCLOUD_REGION}
+              envsubst < manifest.yaml | kubectl apply -f -
+
+workflows:
+  version: 2
+  deploy_pipeline:
+    jobs:
+      - checkout_code
+      - build_and_push:
+          requires:
+            - checkout_code
+      - deploy_to_gke:
+          requires:
+            - build_and_push
