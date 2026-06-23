@@ -22,4 +22,4 @@ run:
 push:
 	git add .
 	git commit -m "deploying"
-	git push -u oigin main
+	git push -u origin main
